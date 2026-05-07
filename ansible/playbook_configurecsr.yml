@@ -44,3 +44,21 @@
             ipv4:
               - address: 192.168.4.1/24
         state: merged
+
+    - name: Supprimer le pool DHCP s'il existe déjà
+      cisco.ios.ios_config:
+        lines:
+          - no ip dhcp pool LAN_ENTREPRISE
+
+    - name: Exclure l'adresse de l'interface
+      cisco.ios.ios_config:
+        lines:
+          - ip dhcp excluded-address 192.168.2.1
+
+    - name: Configurer le serveur DHCP pour LAN_ENTREPRISE
+      cisco.ios.ios_config:
+        parents: ip dhcp pool LAN_ENTREPRISE
+        lines:
+          - network 192.168.2.0 255.255.255.0
+          - default-router 192.168.2.1
+          - dns-server 8.8.8.8
