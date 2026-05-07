@@ -62,3 +62,56 @@
           - network 192.168.2.0 255.255.255.0
           - default-router 192.168.2.1
           - dns-server 8.8.8.8
+
+    - name: Supprimer l'ancienne configuration PAT dynamique
+      cisco.ios.ios_config:
+        lines:
+          - no ip nat inside source list 1 interface GigabitEthernet1 overload
+          - no access-list 1
+      ignore_errors: yes
+
+    - name: Configurer l'interface WAN en NAT outside
+      cisco.ios.ios_config:
+        parents: interface GigabitEthernet1
+        lines:
+          - ip nat outside
+
+    - name: Configurer les interfaces LAN en NAT inside
+      cisco.ios.ios_config:
+        parents: "interface {{ item }}"
+        lines:
+          - ip nat inside
+      loop:
+        - GigabitEthernet2
+        - GigabitEthernet3
+        - GigabitEthernet4
+
+    - name: Créer l'ACL pour autoriser les réseaux internes
+      cisco.ios.ios_config:
+        lines:
+          - access-list 1 permit 192.168.2.0 0.0.0.255
+          - access-list 1 permit 192.168.3.0 0.0.0.255
+          - access-list 1 permit 192.168.4.0 0.0.0.255
+
+    - name: Activer le PAT dynamique
+      cisco.ios.ios_config:
+        lines:
+          - ip nat inside source list 1 interface GigabitEthernet1 overload
+
+    
+    - name: Supprimer les anciennes redirections PAT par port
+      cisco.ios.ios_config:
+        lines:
+          - no ip nat inside source static tcp 192.168.3.2 80 interface GigabitEthernet1 80
+          - no ip nat inside source static tcp 192.168.4.2 22 interface GigabitEthernet1 2222
+      ignore_errors: yes
+
+    - name: Configurer le PAT par port pour le serveur web
+      cisco.ios.ios_config:
+        lines:
+          - ip nat inside source static tcp 192.168.3.2 80 interface GigabitEthernet1 80
+
+    - name: Configurer le PAT par port pour le serveur SSH
+      cisco.ios.ios_config:
+        lines:
+          - ip nat inside source static tcp 192.168.4.2 22 interface GigabitEthernet1 2222
